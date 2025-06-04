@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Existing scripts for video and XLSX handling -->
+  <script type="text/javascript">
+    var gk_isXlsx = false;
+    var gk_xlsxFileLookup = {};
+    var gk_fileData = {};
+    function filledCell(cell) {
+      return cell !== '' && cell != null;
+    }
+    function loadFileData(filename) {
+      if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+        try {
+          var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+          var firstSheetName = workbook.SheetNames[0];
+          var worksheet = workbook.Sheets[firstSheetName];
+          var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+          var filteredData = jsonData.filter(row => row.some(filledCell));
+          var headerRowIndex = filteredData.findIndex((row, index) =>
+            row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+          );
+          if (headerRowIndex === -1 || headerRowIndex > 25) headerRowIndex = 0;
+          var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+          csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+          return csv;
+        } catch (e) {
+          console.error(e);
+          return "";
+        }
+      }
+      return gk_fileData[filename] || "";
+    }
+  </script>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>পড় মন দিয়া</title>
+  <link rel="icon" href="https://cdn-icons-png.freepik.com/512/7856/7856382.png" type="image/png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdn.plyr.io/3.7.8/plyr.css" rel="stylesheet">
+  <style>
+    body {
+      background: radial-gradient(circle at top, #0f0f3d, #000);
+      color: #e2e8f0;
+      min-height: 100vh;
+      background-attachment: fixed;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    header {
+      background-color: #000;
+      box-shadow: 0 0 10px #0ff;
+    }
+
+    .bg-white {
+      background-color: rgba(255, 255, 255, 0.05) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .text-gray-100,
+    .text-lg {
+      color: #9cf !important;
+    }
+
+    #classList li {
+      color: #ccc;
+    }
+
+    #classList li:hover {
+      background-color: rgba(0, 255, 255, 0.1);
+    }
+
+    .bg-blue-200 {
+      background-color: rgba(0, 255, 255, 0.2) !important;
+    }
+
+    .text-red-500 {
+      color: #f56565;
+    }
+
+    .fake-button {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    .footer-quotes {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #888;
+    }
+
+    .footer-quotes p {
+      margin-bottom: 0.5rem;
+    }
+
+    .download-emoji {
+      background-color: #0ff;
+      color: #000;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      transition: background 0.3s;
+    }
+
+    .download-emoji:hover {
+      background-color: #0cc;
+    }
+
+    .shadow-md {
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+    }
+
+    h1, h2 {
+      text-shadow: 0 0 10px #0ff;
+    }
+
+    footer {
+      background-color: #000;
+      color: #888;
+      border-top: 1px solid #222;
+    }
+/* Plyr Customizations */
+    .plyr {
+    border-radius: 8px; /* Optional: if the player itself should have rounded corners */
+    overflow: hidden; /* To contain the gradient within rounded corners if any */
+}
+
+.plyr__video-wrapper {
+    background: linear-gradient(120deg, #6a0dad, #e53985, #ff8c42); /* Purple to Pink to Orange-Red */
+}
+
+/* Big play button in the center */
+.plyr__control--overlaid {
+    background: rgba(255, 255, 255, 0.2) !important; /* Semi-transparent white circle */
+    border-radius: 50%;
+    padding: 20px !important; /* Adjust size */
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+}
+
+.plyr__control--overlaid svg {
+    width: 50px !important; /* Adjust icon size */
+    height: 50px !important;
+    color: white !important;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5));
+}
+
+/* General control icon color */
+.plyr__controls .plyr__control svg {
+    color: white !important;
+}
+.plyr__controls .plyr__control:hover svg {
+    color: #f0f0f0 !important; /* Slightly off-white on hover */
+}
+
+/* Progress bar */
+.plyr__progress {
+    max-width: 100% !important; /* Increase width of progress bar container */
+    width: 100% !important; /* Ensure it takes more space */
+    margin: center auto !important; /* Center it if needed */
+}
+
+.plyr__progress input[type=range] {
+    color: white !important; /* This sets the thumb and played progress color in Plyr */
+    height: 5px !important; /* Make it thinner */
+}
+
+/* Customizing the track of the progress bar */
+.plyr__progress input[type=range]::-webkit-slider-runnable-track {
+    background-color: rgba(255, 255, 255, 0.3) !important; /* Light track */
+    height: 5px !important;
+}
+.plyr__progress input[type=range]::-moz-range-track {
+    background-color: rgba(255, 255, 255, 0.3) !important; /* Light track */
+    height: 5px !important;
+}
+.plyr__progress input[type=range]::-ms-track {
+    background-color: rgba(255, 255, 255, 0.3) !important; /* Light track */
+    height: 5px !important;
+}
+
+/* Hide volume slider */
+.plyr__volume {
+    display: none !important;
+}
+
+/* Control bar background - make it transparent or semi-transparent */
+.plyr__controls {
+    background: linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0)) !important; /* Darker at bottom, fading to transparent */
+    padding-top: 20px !important; /* Add padding so controls don't stick to the very bottom if gradient is too subtle */
+    border-bottom-left-radius: 8px; /* Match player radius */
+    border-bottom-right-radius: 8px;
+}
+
+/* Ensure text like current time is also white */
+.plyr__time {
+    color: white !important;
+}
+
+/* Tooltips for controls */
+.plyr__tooltip {
+    background: rgba(0,0,0,0.8) !important;
+    color: white !important;
+    border-radius: 4px !important;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.5) !important;
+}
+
+/* Settings menu */
+.plyr__menu__container {
+    background: rgba(0,0,0,0.85) !important;
+    color: white !important;
+    border-radius: 4px !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5) !important;
+}
+.plyr__menu__container [role=menuitemradio], .plyr__menu__container [role=menuitem] {
+    color: white !important;
+}
+.plyr__menu__container [role=menuitemradio]:hover, .plyr__menu__container [role=menuitem]:hover {
+    background: rgba(255,255,255,0.1) !important;
+}
+.plyr__menu__container .plyr__control--active {
+    background: rgba(255,255,255,0.2) !important;
+}
+.plyr__menu__container .plyr__control--active svg {
+    color: white !important;
+}
+  </style>
+</head>
+<body class="font-sans">
+  <header class="bg-black text-white p-4 flex items-center">
+    <img src="https://bondipathshala.com.bd/files/logo.png" alt="Bondi Pathshala Logo" class="h-10">
+    <h1 class="ml-4 text-xl font-bold">পড়ালেখা করা ভালো</h1>
+  </header>
+
+  <div class="container mx-auto p-4 flex flex-col lg:flex-row gap-4">
+    <div class="lg:w-3/4 bg-white rounded-lg shadow-md p-4">
+      <h2 class="text-lg font-semibold mb-4 text-gray-100">Live Class</h2>
+      <div style="position: relative;"> <!-- Wrapper for player and custom share button -->
+        <div id="player" data-plyr-provider="youtube" data-plyr-embed-id="RUQcm3vIbWo"></div>
+        <button id="customShareBtn" title="Share" style="position: absolute; top: 15px; right: 15px; z-index: 20; background: none; border: none; cursor: pointer; padding: 0;">
+          <i class="fas fa-share-alt" style="color: white; font-size: 20px; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5));"></i>
+        </button>
+      </div>
+      <div class="flex space-x-4 mt-4">
+        <a id="downloadPdfBtn" href="https://www.bondipathshala.com.bd/pdf/20240527-1716748184-LRH05IsN.pdf" target="_blank" class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+          <i class="fas fa-file-pdf mr-2"></i>Download PDF
+        </a>
+        <button id="downloadEmojiBtn" class="download-emoji">
+          <i class="fas fa-smile mr-2"></i>Open on YouTube
+        </button>
+      </div>
+    </div>
+
+    <div class="lg:w-1/4 bg-white rounded-lg shadow-md p-4">
+      <button id="openAddVideoBtn" class="w-full bg-black text-white p-2 rounded mb-4 fake-button">
+        <i class="fas fa-plus mr-2"></i>Add New Class
+      </button>
+
+      <h2 class="text-lg font-semibold mb-4 text-gray-100">Class List</h2>
+      <ul id="classList" class="space-y-2 max-h-96 overflow-y-auto">
+      <li class="class-item p-2 rounded hover:bg-blue-100 cursor-pointer" data-vid="BzX25StCOyQ" data-nname="জৈব যৌগের ইতিহাস - পর্ব ০১" data-npdf="20250521-1747767276-zTUgBskf.pdf">
+  জৈব যৌগের ইতিহাস - পর্ব ০১ <i class="fas fa-file-pdf text-red-500 ml-2"></i>
+</li>
+<li class="class-item p-2 rounded hover:bg-blue-100 cursor-pointer" data-vid="a_tsletdZjs" data-nname="জৈব যৌগের ইতিহাস - পর্ব ০২" data-npdf="20250525-1748120787-RXz1vtTE.pdf">
+  জৈব যৌগের ইতিহাস - পর্ব ০২ <i class="fas fa-file-pdf text-red-500 ml-2"></i>
+</li>
+<li class="class-item p-2 rounded hover:bg-blue-100 cursor-pointer" data-vid="9055Ce-Ehd4" data-nname="জৈব যৌগের ইতিহাস  - পর্ব ০৩" data-npdf="20250526-1748209809-b0ltKw7V.pdf">
+  জৈব যৌগের ইতিহাস  - পর্ব ০৩ <i class="fas fa-file-pdf text-red-500 ml-2"></i>
+</li>
+<li class="class-item p-2 rounded hover:bg-blue-100 cursor-pointer" data-vid="CVCW92j2zSw" data-nname="জৈব যৌগ - পর্ব ০৪" data-npdf="20250529-1748503530-x3r34ooq.pdf">
+  জৈব যৌগের ইতিহাস - পর্ব ০৪ <i class="fas fa-file-pdf text-red-500 ml-2"></i>
+</li>
+<li class="class-item p-2 rounded hover:bg-blue-100 cursor-pointer" data-vid="XqMsgz9yTto" data-nname="জৈব যৌগ - পর্ব ০৫" data-npdf="20250530-1748546953-jhRBbO4q.pdf">
+  জৈব যৌগের ইতিহাস - পর্ব ০৫ <i class="fas fa-file-pdf text-red-500 ml-2"></i>
+</li>
+      </ul>
+    </div>
+  </div>
+
+<footer class="bg-gray-900 text-white py-8 px-4 md:px-8 relative overflow-hidden">
+  <!-- Neon Glow Background Effect -->
+  <div class="absolute inset-0 bg-gradient-to-r from-pink-500/20 via-cyan-500/20 to-lime-500/20 animate-pulse"></div>
+  
+  <div class="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left relative z-10">
+    <!-- Brand/Logo Section -->
+    <div>
+      <h2 class="text-3xl font-extrabold tracking-wider text-lime-400>Bondi Pathshala</h2>
+      <p class="mt-2 text-lime-300 t-medium">Bondi Pathshala</p>
+    </div>
+
+    <!-- Navigation Links -->
+    <div>
+      <h3 class="text-lg font-bold text-lime-400 mb-4 drop-shadow-[0_0_8px_rgba(132,204,22,0.6)]">মন ফ্রেশ থাকলে পড়া বেশি মনে থাকে!</h3>
+      <ul class="space-y-2 text-cyan-300 text-sm">
+  <li>পড়ায় ঝড় তুলো!</li>
+  <li>রঙিন নোট ফাটাও!</li>
+  <li> বই  পড়ো!</li>
+      </ul>
+    </div>
+
+    <!-- Social Media & Contact -->
+    <div>
+      <h3 class="text-lg font-bold text-lime-400 mb-4 drop-shadow-[0_0_8px_rgba(132,204,22,0.6)]">Connect With Us</h3>
+      <div class="flex justify-center md:justify-start space-x-4 mb-4">
+        <a href="#" class="hover:scale-110 transform transition-transform duration-300 drop-shadow-[0_0_6px_rgba(236,72,153,0.5)]">
+          <svg class="w-6 h-6 fill-current text-cyan-300 hover:text-pink-400" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+          </svg>
+        </a>
+        <a href="#" class="hover:scale-110 transform transition-transform duration-300 drop-shadow-[0_0_6px_rgba(236,72,153,0.5)]">
+          <svg class="w-6 h-6 fill-current text-cyan-300 hover:text-pink-400" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 14v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1h-6v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+          </svg>
+        </a>
+      </div>
+      <p class="text-cyan-300 text-sm font-medium">Email: <a href="mailto:arnoy799@gmail.com" class="hover:text-pink-400 transition-colors duration-300 hover:drop-shadow-[0_0_6px_rgba(236,72,153,0.5)]">arnoy799@gmail.com</a></p>
+    </div>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="border-t border-pink-500/50 mt-8 pt-4 text-center text-cyan-300 text-sm font-medium">
+    <p>© 2025 Bondi Pathshala. All rights reserved.</p>
+  </div>
+</footer>
+
+  <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+  <script>
+    // Initialize Plyr
+    const player = new Plyr('#player', {
+      controls: ['play-large', 'rewind', 'play', 'fast-forward', 'progress', 'current-time',  'settings', 'pip', 'fullscreen'],
+      youtube: { noCookie: true, rel: 0, showinfo: 0, modestbranding: 1 }
+    });
+
+    // Function to find and set the highest available quality
+    function setHighestQuality() {
+      const availableQualities = player.quality.options;
+      if (availableQualities && availableQualities.length > 0) {
+        // Filter out 'auto' and sort numerically in descending order
+        const sortedQualities = availableQualities
+          .filter(quality => quality !== 'auto')
+          .sort((a, b) => parseInt(b) - parseInt(a));
+
+        if (sortedQualities.length > 0) {
+          const highestQuality = sortedQualities[0];
+          if (player.quality !== highestQuality) {
+            player.quality = highestQuality;
+            console.log(`Set playback quality to highest available: ${highestQuality}`);
+          }
+        }
+      }
+    }
+
+    // Listen for the 'ready' event to set quality once the player is ready
+    player.on('ready', event => {
+      setTimeout(setHighestQuality, 100);
+    });
+
+    // Listen for the 'sourcechange' event to set quality when a new video is loaded
+    player.on('sourcechange', event => {
+      setTimeout(setHighestQuality, 100);
+    });
+
+    // Variable to store the current video ID
+    let currentVideoId = '';
+
+    // Handle class selection
+    function attachClassItemListeners() {
+      const classItems = document.querySelectorAll('.class-item');
+      const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+
+      // Remove existing listeners to prevent duplicates
+      classItems.forEach(item => {
+        const old_listener = item._eventListener;
+        if (old_listener) {
+          item.removeEventListener('click', old_listener);
+        }
+      });
+
+      classItems.forEach(item => {
+        const new_listener = () => {
+          const videoId = item.dataset.vid;
+          currentVideoId = videoId; // Store the video ID for the YouTube button
+          localStorage.setItem('lastSelectedVideo', videoId);
+
+          player.source = {
+            type: 'video',
+            sources: [{ src: videoId, provider: 'youtube' }]
+          };
+// Custom Share Button Functionality
+    const customShareBtn = document.getElementById('customShareBtn');
+    if (customShareBtn) {
+      customShareBtn.addEventListener('click', () => {
+        if (currentVideoId) {
+          const youtubeUrl = `https://www.youtube.com/watch?v=${currentVideoId}`;
+          navigator.clipboard.writeText(youtubeUrl).then(() => {
+            alert('Video link copied to clipboard!');
+          }).catch(err => {
+            console.error('Failed to copy video link: ', err);
+            alert('Failed to copy video link. Please try again.');
+          });
+        } else {
+          alert("No video selected to share.");
+        }
+      });
+    }
+          classItems.forEach(i => i.classList.remove('bg-blue-200'));
+          item.classList.add('bg-blue-200');
+          const pdfLink = item.dataset.npdf;
+          if (pdfLink) {
+            downloadPdfBtn.href = `https://www.bondipathshala.com.bd/pdf/${pdfLink}`;
+            downloadPdfBtn.classList.remove('hidden');
+          } else {
+            downloadPdfBtn.classList.add('hidden');
+          }
+        };
+        item.addEventListener('click', new_listener);
+        item._eventListener = new_listener;
+      });
+    }
+    attachClassItemListeners();
+
+    // Load videos from localStorage
+    const storedVideos = JSON.parse(localStorage.getItem('customVideos')) || [];
+    const classListUl = document.getElementById('classList');
+    storedVideos.forEach(video => {
+      const li = document.createElement('li');
+      li.className = 'class-item p-2 rounded hover:bg-blue-100 cursor-pointer';
+      li.dataset.vid = video.id;
+      li.dataset.nname = video.title;
+      li.dataset.npdf = video.pdfLink || '';
+      li.innerHTML = `${video.title}${video.pdfLink ? ` <i class="fas fa-file-pdf text-red-500 ml-2"></i>` : ''}`;
+      classListUl.appendChild(li);
+    });
+    attachClassItemListeners();
+
+    // Download Emoji button functionality using the stored video ID
+    
+    
+    // Auto-load last selected video from localStorage and scroll into view
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        const lastVideoId = localStorage.getItem('lastSelectedVideo');
+        if (lastVideoId) {
+          const lastItem = [...document.querySelectorAll('.class-item')].find(item => item.dataset.vid === lastVideoId);
+          if (lastItem) {
+            lastItem.click(); // Load and highlight
+            lastItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 2000);
+    });
+
+const downloadEmojiBtn = document.getElementById('downloadEmojiBtn');
+    downloadEmojiBtn.addEventListener('click', () => {
+      if (currentVideoId) {
+        const youtubeUrl = `https://www.youtube.com/watch?v=${currentVideoId}`;
+        window.open(youtubeUrl, '_blank');
+      } else {
+        alert("No video selected");
+      }
+    });
+
+    // Add keyboard shortcuts:
+    // u: volume up, d: volume down, a: slow playback, b: speed up, f: toggle fullscreen
+    document.addEventListener('keydown', (event) => {
+      const key = event.key.toLowerCase();
+      switch (key) {
+        case 'u': {
+          const newVolume = Math.min(1, player.volume + 0.1);
+          player.volume = newVolume;
+          console.log(`Volume increased to ${newVolume.toFixed(2)}`);
+          break;
+        }
+        case 'd': {
+          const newVolume = Math.max(0, player.volume - 0.1);
+          player.volume = newVolume;
+          console.log(`Volume decreased to ${newVolume.toFixed(2)}`);
+          break;
+        }
+        case 'a': {
+          const newRate = Math.max(0.25, player.playbackRate - 0.25);
+          player.playbackRate = newRate;
+          console.log(`Playback rate decreased to ${newRate}`);
+          break;
+        }
+        case 'b': {
+          const newRate = player.playbackRate + 0.25;
+          player.playbackRate = newRate;
+          console.log(`Playback rate increased to ${newRate}`);
+          break;
+        }
+        case 'f': {
+          player.fullscreen.toggle();
+          console.log('Fullscreen toggled');
+          break;
+        }
+      }
+    });
+  
+    // Store time every 10 seconds
+    setInterval(() => {
+      if (player && currentVideoId && !player.paused) {
+        const currentTime = player.currentTime;
+        const progressKey = `videoProgress_${currentVideoId}`;
+        localStorage.setItem(progressKey, currentTime);
+        console.log(`Saved progress: ${currentTime.toFixed(2)}s for video ${currentVideoId}`);
+      }
+    }, 10000); // every 10 sec
+
+    // Load saved time and seek
+    player.on('ready', () => {
+      if (currentVideoId) {
+        const progressKey = `videoProgress_${currentVideoId}`;
+        const savedTime = parseFloat(localStorage.getItem(progressKey));
+        if (!isNaN(savedTime)) {
+          player.currentTime = savedTime;
+          console.log(`Resuming from saved time: ${savedTime.toFixed(2)}s`);
+        }
+      }
+    });
+
+    // Also listen when the video source changes (like clicking a different class)
+    player.on('sourcechange', () => {
+      setTimeout(() => {
+        if (currentVideoId) {
+          const progressKey = `videoProgress_${currentVideoId}`;
+          const savedTime = parseFloat(localStorage.getItem(progressKey));
+          if (!isNaN(savedTime)) {
+            player.currentTime = savedTime;
+            console.log(`Resuming from saved time: ${savedTime.toFixed(2)}s`);
+          }
+        }
+      }, 500);
+    });
+</script>
+
+</body>
+</html>
