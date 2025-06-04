@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "api/transcript.py": {
-      "runtime": "python@3.11"
+      "runtime": "vercel-python@0.8.0"
     }
   },
   "routes": [
